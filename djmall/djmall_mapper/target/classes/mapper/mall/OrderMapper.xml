@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!-- 
+	namespace:用于隔离SQL全局唯一（采用接口和XML开发时为接口的全路径）
+ -->
+<mapper namespace="com.dj.mall.mapper.mall.OrderMapper">
+
+
+
+    <!-- 提取公共部分  sql 代码块 -->
+		<!-- <sql id="UserColumn">
+		  id, user_name, password, user_type, manager_id
+		</sql>-->
+
+	<!-- 
+			sql语句的*  提取公共部分
+	    	 用<include refid="UserColumn"/> 代替
+	 -->
+
+
+    <update id="updateProductSkuById">
+        UPDATE djmall_product_sku SET sku_count= sku_count - #{num} where id =#{id}
+    </update>
+    <update id="updateProductSkuByIdAddCount">
+        UPDATE djmall_product_sku SET sku_count= sku_count + #{num} where id =#{id}
+    </update>
+    <!--展示待支付的订单  根据父级订单查询-->
+    <select id="findOrderByParentNum" resultType="com.dj.mall.domain.mall.entiy.Order">
+            SELECT
+                parent_num,
+               sum(pro_num)AS number,
+                SUM(
+                    (pro_num * actual_price) + freight_money
+                ) AS totalMoney,
+                SUM(freight_money)AS totalFreight,
+                delivery_time,
+                pay_status,
+                GROUP_CONCAT(product_name) AS productNameShow
+            FROM
+                dj_mall_order
+            WHERE
+                order_son_status = 1  and user_id =#{userId}
+            GROUP BY
+                parent_num
+    </select>
+    <select id="findOrderBySonStatus" resultType="com.dj.mall.domain.mall.entiy.Order">
+             SELECT
+                id,
+                product_name,
+                parent_num,
+                order_son_num,
+                sku_attr_name,
+                pro_num,
+                rate,
+                actual_price*pro_num +freight_money as totalMoney,
+                pay_status,
+                freight_money,
+                delivery_time,
+                pay_time,
+                cancel_time,
+                message,
+                message_time,
+                comments
+            FROM
+                dj_mall_order
+            WHERE
+                order_son_status = #{orderSonStatus}
+            AND user_id = #{userId}
+            ORDER BY id DESC
+    </select>
+
+
+    <!--晒单评价  保存到评论表-->
+    <insert id="insertCommon">
+        INSERT INTO common (product_id,user_id,context,create_time,score) VALUES(#{productId},#{userId},#{context},NOW(),#{score})
+    </insert>
+
+
+
+
+    <!--<resultMap type="com.dj.mall.domain.mall.entiy.Common" id="UserOneToManyOrder">
+        <id property="id" column="id"></id>
+        <result property="productId" column="id"/>
+        <result property="productId" column="id"/>
+        <collection property="replyList" ofType="com.dj.mall.domain.mall.entiy.Reply">
+            <id property="id" column="oder_id"/>
+            <result property="userId" column="id"/>
+            <result property="num" column="num"/>
+        </collection>
+    </resultMap>-->
+    <resultMap id="UserOneToManyOrder" type="com.dj.mall.domain.mall.entiy.Common">
+        <id property="id" column="id"/>
+        <result property="productId" column="product_id"/>
+        <result property="userId" column="user_id" />
+        <result property="context" column="context" />
+        <result property="createTime" column="create_time" />
+        <result property="score" column="score" />
+        <result property="username" column="username" />
+        <collection property="replyList" ofType="com.dj.mall.domain.mall.entiy.Reply">
+            <id property="id" column="replyId"/>
+            <result property="context" column="repContext"/>
+            <result property="createTime" column="repCreateTime"/>
+            <result property="isUser" column="is_user"/>
+        </collection>
+    </resultMap>
+    <!--查询评论展示     指定商品 商品的所有评论-->
+    <select id="findCommonByProductId" resultMap="UserOneToManyOrder">
+        SELECT
+        c.id,
+        c.product_id,
+        c.user_id,
+        c.context,
+        c.create_time,
+        c.score,
+        u.username,
+        r.id AS replyId,
+        r.context AS repContext,
+        r.create_time AS repCreateTime,
+        r.is_user
+        FROM
+        common c
+        LEFT JOIN djmall_user u ON c.user_id = u.id
+        LEFT JOIN reply r ON c.id = r.comment_id
+        WHERE c.product_id = #{common.productId}
+        <if test="common.score == 1">
+            and score in (1,2,3,4,5)
+        </if>
+        <if test="common.score == 2">
+            and score in (4,5)
+        </if>
+        <if test="common.score == 3">
+            and score = 3
+        </if>
+        <if test="common.score == 4">
+            and score in (1,2)
+        </if>
+        ORDER BY c.create_time DESC, r.create_time ASC
+    </select>
+
+
+
+    <!--查询评论展示     指定商品 商品的所有评论-->
+   <!-- <select id="findCommonByProductId" resultType="com.dj.mall.domain.mall.entiy.Common">
+		  SELECT
+			c.id,
+			c.product_id,
+			c.user_id,
+			c.context,
+			c.create_time,
+			c.score,
+			u.username
+		FROM
+			common c
+		LEFT JOIN djmall_user u ON c.user_id = u.id
+		WHERE c.product_id = #{common.productId}
+		<if test="common.score == 1">
+            and score in (1,2,3,4,5)
+        </if>
+        <if test="common.score == 2">
+            and score in (4,5)
+        </if>
+        <if test="common.score == 3">
+            and score = 3
+        </if>
+        <if test="common.score == 4">
+            and score in (1,2)
+        </if>
+	</select>-->
+
+
+    <!-- 买家回复-->
+    <insert id="insertReply">
+		INSERT INTO reply VALUES(NULL, #{commentId}, #{context}, NOW(), #{isUser})
+	</insert>
+
+</mapper>

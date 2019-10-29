@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!-- 
+	namespace:用于隔离SQL全局唯一（采用接口和XML开发时为接口的全路径）
+ -->
+<mapper namespace="com.dj.mall.mapper.product.ProductSkuMapper">
+	
+	 
+		<!-- 提取公共部分  sql 代码块 -->
+		<!-- <sql id="UserColumn">
+		  id, user_name, password, user_type, manager_id
+		</sql>-->
+
+	<!-- 
+			sql语句的*  提取公共部分
+	    	 用<include refid="UserColumn"/> 代替
+	 -->
+
+
+	
+</mapper>

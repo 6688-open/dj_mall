@@ -1,0 +1,292 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!-- 
+	namespace:用于隔离SQL全局唯一（采用接口和XML开发时为接口的全路径）
+ -->
+<mapper namespace="com.dj.mall.mapper.user.UserMapper">
+	
+	 
+		<!-- 提取公共部分  sql 代码块 -->
+		 <sql id="UserColumn">
+		  id, user_name, password, user_type, manager_id
+		</sql>  
+
+	<!-- 
+			sql语句的*  提取公共部分
+	    	 用<include refid="UserColumn"/> 代替
+	 -->
+	<!--商城展示-->
+	<select id="findProductAndSKUAll" resultType="com.dj.mall.domain.product.entiy.Product">
+				  SELECT
+						p.id,
+						p.product_name,
+						p.dictionary_code,
+						p.product_status,
+						p.freight_id,
+						p.picture,
+						p.product_describe,
+						p.thumb_number,
+						p.order_number,
+						post.fre_id,
+						post.log_id,
+						post.freight,
+						post.dictionary_name,
+						dic.dictionary_name AS dictionaryNameShow,
+						sku.sku_price AS priceShow,
+						sku.sku_count AS countShow,
+						sku.sku_rate AS rateShow
+					FROM
+						product p
+					LEFT JOIN (
+						SELECT
+							f.id AS fre_id,
+							f.log_id,
+							f.freight,
+							d.dictionary_name
+						FROM
+							freight f
+						LEFT JOIN dictionary d ON f.log_id = d.id
+					) post ON p.freight_id = post.fre_id
+			LEFT JOIN djmall_product_sku sku ON p.id = sku.product_id
+			LEFT JOIN dictionary dic ON dic.`code` = p.dictionary_code
+			where  sku.is_default = 1 AND p.product_status = 1
+				<if test="product.dictionaryCodeArr != null">
+					AND dictionary_code in
+					<foreach collection="product.dictionaryCodeArr" item="a" open="(" close=")" separator="," >
+						#{a}
+					</foreach>
+				</if>
+
+				<if test="product.productName != null and product.productName != '' ">
+					AND CONCAT(p.product_name,p.product_describe ,dic.dictionary_name)  like "%" #{product.productName}"%"
+				</if>
+
+				<if test="product.startPrice != null">
+					AND sku.sku_price &gt;= #{product.startPrice}
+				</if>
+				<if test="product.endPrice != null">
+					AND sku.sku_price &lt;= #{product.endPrice}
+				</if>
+
+	</select>
+
+
+
+	<!--findProductMsgById  商品信息详情-->
+	<select id="findProductMsgById" resultType="com.dj.mall.domain.product.entiy.Product">
+		SELECT
+						p.id,
+						p.product_name,
+						p.dictionary_code,
+						p.product_status,
+						p.freight_id,
+						p.picture,
+						p.product_describe,
+						p.thumb_number,
+						p.order_number,
+						post.fre_id,
+						post.log_id,
+						post.freight,
+						post.dictionary_name,
+						dic.dictionary_name AS dictionaryNameShow,
+						sku.sku_price AS priceShow,
+						sku.sku_count AS countShow,
+						sku.sku_rate AS rateShow,
+						sku.id AS proSkuId
+					FROM
+						product p
+					LEFT JOIN (
+						SELECT
+							f.id AS fre_id,
+							f.log_id,
+							f.freight,
+							d.dictionary_name
+						FROM
+							freight f
+						LEFT JOIN dictionary d ON f.log_id = d.id
+					) post ON p.freight_id = post.fre_id
+			LEFT JOIN djmall_product_sku sku ON p.id = sku.product_id
+			LEFT JOIN dictionary dic ON dic.`code` = p.dictionary_code
+			where  sku.is_default = 1 AND p.product_status = 1 and p.id= #{id}
+	</select>
+
+	<!--findProductSkuByProductId  根据ProductId 查询 sku 集合 属性值 -->
+	<select id="findProductSkuByProductId" resultType="com.dj.mall.domain.product.entiy.ProductSku">
+		SELECT id, product_id, sku_count,sku_price, sku_rate,sku_attr_names,sku_attr_value_names FROM djmall_product_sku  WHERE product_id = #{productId}
+	</select>
+
+	<!--findProductSkuById  ProductSku   根据 id 查询数据   查询价格   不同sku 对应不同的价格   点击单选按钮 价格改变-->
+	<select id="findProductSkuById" resultType="com.dj.mall.domain.product.entiy.ProductSku">
+		SELECT id, product_id, sku_price, sku_count,sku_rate,sku_status,sku_attr_names,sku_attr_value_names FROM djmall_product_sku where id =#{id}
+	</select>
+	<select id="toUpdateMsg" resultType="com.dj.mall.domain.user.entiy.User">
+			  SELECT
+				id,
+				username,
+				`password`,
+				phone,
+				email,
+				sex,
+				lever,
+				`status`,
+				is_reset,
+				nick_name,
+				head_img
+			FROM
+				djmall_user
+			WHERE
+				id = #{id}
+	</select>
+
+	<!--/添加购物车  同一用户   同一个proSkuId   没有的话是新增   有的话更新数量-->
+	<select id="getShoppinngCarByUserIdAndProSkuId" resultType="com.dj.mall.domain.mall.entiy.ShoppingCar">
+		SELECT id,user_id,product_name, old_price, pro_sku,pro_rate,pro_freight,new_price,pro_sku_id,num FROM shopping_car WHERE user_id = #{userId} and pro_sku_id =#{proSkuId}
+
+	</select>
+	<update id="updateShoppingCarNumByUserIdAndProSkuId">
+		UPDATE shopping_car SET num = #{num}  WHERE user_id = #{userId} and pro_sku_id = #{proSkuId}
+	</update>
+
+	<!--insertShoppingCar   加入购物车-->
+	<insert id="insertShoppingCar" useGeneratedKeys="true" keyColumn="id" keyProperty="id">
+		<!--<selectKey keyColumn="id" keyProperty="id" order="AFTER" resultType="java.lang.Integer" >-->
+			<!--SELECT LAST_INSERT_ID()-->
+		<!--</selectKey>-->
+		INSERT INTO shopping_car (user_id,product_name,old_price,pro_sku,pro_rate,pro_freight,new_price,pro_sku_id,num)  VALUES (#{userId},#{productName},#{oldPrice},#{proSku},#{proRate},#{proFreight},#{newPrice},#{proSkuId},#{num})
+	</insert>
+    <!--findShoppingCarById 根据用户id  去查询当前登录用户 的购物车信息 -->
+	<select id="findShoppingCarById" resultType="com.dj.mall.domain.mall.entiy.ShoppingCar">
+		SELECT id, user_id,product_name,old_price,pro_sku,pro_rate,pro_freight,new_price, pro_sku_id,num FROM shopping_car where user_id = #{userId} ORDER BY id DESC
+	</select>
+    <!--deleteShoppingCarByIds  购物车删除已选中的商品  批量删除-->
+    <delete id="deleteShoppingCarByIds">
+        DELETE FROM shopping_car where id in
+        <foreach collection="ids" item="id" open="(" close=")" separator="," >
+            #{id}
+        </foreach>
+    </delete>
+
+    <!--根据购物车的id  去查询一条数据-->
+	<select id="getShoppingCarById" resultType="com.dj.mall.domain.mall.entiy.ShoppingCar">
+		SELECT id, user_id,product_name,old_price,pro_sku,pro_rate,pro_freight,new_price, pro_sku_id,num FROM shopping_car where id = #{id}
+	</select>
+
+	<!--updateShoppingNumCarById   根据id 修改 购物车的数量 -->
+	<update id="updateShoppingNumCarById">
+		UPDATE shopping_car SET num = #{num}  WHERE id = #{id}
+	</update>
+	<!-- 选中 立即结算  价格 邮费 商品个数 回显-->
+	<select id="getShoppingCarByIds" resultType="com.dj.mall.domain.mall.entiy.ShoppingCar">
+		SELECT id, user_id,product_name,old_price,pro_sku,pro_rate,pro_freight,new_price, pro_sku_id,num FROM shopping_car where id in
+		<foreach collection="ids" item="id" open="(" close=")" separator="," >
+			#{id}
+		</foreach>
+	</select>
+
+    <!--根据前台传来的ids   去展示要确认的订单  进入确认订单页面 -->
+    <select id="findShoppingCarByIds" resultType="com.dj.mall.domain.mall.entiy.ShoppingCar">
+		SELECT id, user_id,product_name,old_price,pro_sku,pro_rate,pro_freight,new_price, pro_sku_id,num FROM shopping_car where id in
+        <foreach collection="ids" item="id" open="(" close=")" separator="," >
+            #{id}
+        </foreach>
+		ORDER BY id DESC
+	</select>
+	<!--在确认订单展示列表  回显登录人的地址列表集合-->
+	<select id="findAddressByUserIdToOrderList" resultType="com.dj.mall.domain.mall.entiy.Address">
+		SELECT id,user_id,address,phone,address_name,pro_id,city_id,area_id FROM address WHERE user_id = #{userId}
+	</select>
+
+
+
+    <!-- 在确认订单展示列表   确认加入订单表  状态为待支付     减库存  删除对应购物车-->
+	<insert id="insertOrder" keyProperty="id" useGeneratedKeys="true">
+		INSERT INTO dj_mall_order (parent_num,order_son_num,product_name, pro_sku_id,pro_num, freight_money,original_price,actual_price,rate,sku_attr_name,order_son_status,message, message_time,comments,delivery_time,address,pay_status,user_id,seller_id,product_id)  VALUES
+		<foreach collection="order" item="od" separator=",">
+			(#{od.parentNum},#{od.orderSonNum},#{od.productName},#{od.proSkuId},#{od.proNum},#{od.freightMoney},#{od.originalPrice},#{od.actualPrice},#{od.rate},#{od.skuAttrName},#{od.orderSonStatus},#{od.message},#{od.messageTime},#{od.comments},#{od.deliveryTime},#{od.address},#{od.payStatus},#{od.userId},#{od.sellerId},#{od.productId})
+		</foreach>
+	</insert>
+
+
+
+	<!-- 查询所有订单展示  商户  管理员可见 /-->
+	<select id="findOrderAll" resultType="com.dj.mall.domain.mall.entiy.Order">
+			SELECT
+				o.id,
+				o.parent_num,
+				o.order_son_num,
+				o.product_name,
+				o.pro_num,
+				o.rate,
+				o.actual_price * o.pro_num + o.freight_money AS totalMoney,
+				o.pay_status,
+				o.freight_money,
+				o.address,
+				u.username,
+				u.phone,
+				o.delivery_time,
+				o.pay_time,
+				o.message,
+				o.order_son_status,
+				o.seller_id
+			FROM
+				dj_mall_order o
+			LEFT JOIN djmall_user u ON o.user_id = u.id
+			<if test="lever == 1">
+				WHERE o.seller_id = #{sellerId}
+			</if>
+
+	</select>
+	<!--卖家去发货 将待发货2   修改成已发货，待收货状态  3-->
+	<update id="updateMessage">
+		UPDATE dj_mall_order SET message = #{message},message_time = NOW() WHERE order_son_num = #{orderSonNum}
+	</update>
+
+
+
+	<!--前台获取  proSkuId  从redis获取userId  查询是否已经点赞过    如果已经点赞过就不能再点赞-->
+	<select id="getGreatByUserIdAndProSkuId" resultType="com.dj.mall.domain.product.entiy.Great">
+		SELECT id,pro_sku_id, user_id FROM dj_mall_great  WHERE pro_sku_id = #{proSkuId} and user_id =#{userId}
+	</select>
+	<!--查询不空 说明已经点赞了 取消点赞  根据查询的id 进行删除-->
+	<delete id="deleteGreatById">
+		DELETE FROM dj_mall_great WHERE id = #{id}
+	</delete>
+	<!--保存点赞表-->
+	<insert id="addGreat">
+		INSERT INTO dj_mall_great (pro_sku_id, user_id) VALUES (#{proSkuId}, #{userId})
+	</insert>
+
+	<!--//修改商品表 点赞数量 条件 id     thumbNumber-->
+	<update id="updateProductThumbById">
+		UPDATE product SET thumb_number = #{thumbNumber} where id = #{id}
+	</update>
+
+
+
+    <!--根据productSku 中productId查询 product表中的卖家userId-->
+	<select id="getProductById" resultType="com.dj.mall.domain.product.entiy.Product">
+		SELECT user_id FROM product WHERE id = #{id}
+	</select>
+
+	<!--直接去商品展示页面    查询好评率-->
+	<select id="findCommonAllByProductId" resultType="com.dj.mall.domain.mall.entiy.Common">
+          SELECT
+			c.id,
+			c.product_id,
+			c.user_id,
+			c.context,
+			c.create_time,
+			c.score,
+			u.username
+		FROM
+			common c
+		LEFT JOIN djmall_user u ON c.user_id = u.id
+		WHERE c.product_id = #{productId}
+    </select>
+
+
+
+
+
+</mapper>

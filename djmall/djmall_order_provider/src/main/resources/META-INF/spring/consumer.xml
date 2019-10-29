@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:dubbo="http://dubbo.apache.org/schema/dubbo"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.3.xsd
+       http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.0.xsd
+       http://dubbo.apache.org/schema/dubbo http://dubbo.apache.org/schema/dubbo/dubbo.xsd">
+
+    <!-- 加入Properties文件读取 -->
+   <!-- <context:property-placeholder location="classpath:props/**/*.properties" />-->
+
+    <!-- 消费方应用名，用于计算依赖关系，不是匹配条件，不要与提供方一样 -->
+   <!-- <dubbo:application name="dj_mall_web"/>-->
+
+    <!-- 使用zookeeper广播注册中心暴露发现服务地址 -->
+    <dubbo:registry address="${dubbo.registry.zk.address}" />
+
+    <!-- 消费方的统一配置-->
+    <dubbo:consumer timeout="60000" check="false" retries="5"/>
+    <!--cmpt 邮箱                     user_provider 既是提供者  又是消费者  -->
+    <dubbo:reference id="emailService" interface="com.dj.mall.api.order.cmpt.EmailService"/>
+    <!--cmpt redis               user_provider service 既是提供者  又是消费者   -->
+    <dubbo:reference id="redisService" interface="com.dj.mall.api.order.cmpt.RedisService"/>
+    <!--user               -->
+    <dubbo:reference id="userService" interface="com.dj.mall.api.order.user.UserService"/>
+
+</beans>

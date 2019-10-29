@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!-- 
+	namespace:用于隔离SQL全局唯一（采用接口和XML开发时为接口的全路径）
+ -->
+<mapper namespace="com.dj.mall.mapper.product.ProductMapper">
+
+
+
+	<!-- 提取公共部分  sql 代码块 -->
+		<!-- <sql id="UserColumn">
+		  id, user_name, password, user_type, manager_id
+		</sql>-->
+
+	<!-- 
+			sql语句的*  提取公共部分
+	    	 用<include refid="UserColumn"/> 代替
+	 -->
+
+	<select id="findProductAll"  resultType="com.dj.mall.domain.product.entiy.Product">
+		SELECT
+			p.id,
+			p.product_name,
+			p.dictionary_code,
+			p.product_status,
+			p.freight_id,
+			p.picture,
+			p.product_describe,
+			p.thumb_number,
+			p.order_number,
+			post.fre_id,
+			post.log_id,
+			post.freight,
+			post.dictionary_name
+		FROM
+			product p
+		LEFT JOIN (
+			SELECT
+				f.id AS fre_id,
+				f.log_id,
+				f.freight,
+				d.dictionary_name
+			FROM
+				freight f
+			LEFT JOIN dictionary d ON f.log_id = d.id
+		) post ON p.freight_id = post.fre_id
+		<where>
+			<if test="product.productName != null and product.productName != '' ">
+				AND product_name like "%" #{product.productName}"%"
+			</if>
+			<if test="product.dictionaryCodeArr != null">
+				AND dictionary_code in
+				<foreach collection="product.dictionaryCodeArr" item="a" open="(" close=")" separator="," >
+					#{a}
+				</foreach>
+			</if>
+			<if test="product.userLever == 1">
+				AND user_id = #{product.userId}
+			</if>
+		</where>
+		ORDER BY id DESC
+	</select>
+
+
+	<select id="getOrderByProductIdCount" resultType="java.lang.Integer">
+		SELECT count(*) FROM dj_mall_order where  product_id = #{productId}
+	</select>
+
+
+    <!--去展示时 模糊查显示复选框    parentCode = PRODUCT_TYPE-->
+    <select id="findDictionaryByparentCode" resultType="com.dj.mall.domain.basedata.dictionary.entiy.Dictionary">
+        SELECT id,code,dictionary_name,parent_code FROM dictionary WHERE parent_code = #{parentCode}
+    </select>
+
+
+	<!--findFreightAll   添加商品  下拉框运费 和物流名称-->
+	<select id="findFreightAll" resultType="com.dj.mall.domain.basedata.log.entiy.Freight">
+		SELECT
+			f.id ,
+			f.freight,
+			d.dictionary_name AS logName
+		FROM
+			freight f
+		LEFT JOIN dictionary d ON f.log_id = d.id
+	</select>
+	<!--findDictionaryByProductType    添加商品  下拉框产品分类 Dictionary-->
+	<select id="findDictionaryByProductType" resultType="com.dj.mall.domain.basedata.dictionary.entiy.Dictionary">
+		SELECT id, code,dictionary_name,parent_code FROM dictionary where parent_code = 'PRODUCT_TYPE'
+	</select>
+
+
+	<!--findProductAttrValueByProductCode  商品对应 添加属性 属性值  展示列表 -->
+	<select id="findProductAttrValueByProductCode" resultType="com.dj.mall.domain.basedata.sku.entiy.ProductSkuGm">
+			SELECT
+			 sku.id,
+			 sku.product_type,
+			 sku.attr_id,
+			 attva.attrShow,
+			 attva.attrValueShow,
+			 attva.attrValueId
+
+			 FROM djmall_product_sku_gm sku
+			LEFT JOIN (
+				SELECT
+							pa.id,
+							pa.attr_name AS attrShow,
+						 GROUP_CONCAT(pv.attr_value) AS attrValueShow,
+							GROUP_CONCAT(pv.id) AS attrValueId
+						FROM
+							djmall_product_attr pa
+						LEFT JOIN djmall_product_attr_value pv ON pa.id = pv.attr_id
+						GROUP BY pa.attr_name
+						ORDER BY pa.id DESC
+
+			) attva  ON sku.attr_id = attva.id
+
+			HAVING sku.product_type = #{productCode}
+	</select>
+
+
+	<!--查询评论展示     指定商品 商品的所有评论-->
+	<resultMap id="UserOneToManyOrder" type="com.dj.mall.domain.mall.entiy.Common">
+		<id property="id" column="id"/>
+		<result property="productId" column="product_id"/>
+		<result property="userId" column="user_id" />
+		<result property="context" column="context" />
+		<result property="createTime" column="create_time" />
+		<result property="score" column="score" />
+		<result property="username" column="username" />
+		<collection property="replyList" ofType="com.dj.mall.domain.mall.entiy.Reply">
+			<id property="id" column="replyId"/>
+			<result property="context" column="repContext"/>
+			<result property="createTime" column="repCreateTime"/>
+			<result property="isUser" column="is_user"/>
+		</collection>
+	</resultMap>
+	<!--查询评论展示     指定商品 商品的所有评论-->
+	<select id="findCommonByProductId" resultMap="UserOneToManyOrder">
+		SELECT
+		c.id,
+		c.product_id,
+		c.user_id,
+		c.context,
+		c.create_time,
+		c.score,
+		u.username,
+		r.id AS replyId,
+		r.context AS repContext,
+		r.create_time AS repCreateTime,
+		r.is_user
+		FROM
+		common c
+		LEFT JOIN djmall_user u ON c.user_id = u.id
+		LEFT JOIN reply r ON c.id = r.comment_id
+		WHERE c.product_id = #{common.productId}
+		<if test="common.score == 1">
+			and score in (1,2,3,4,5)
+		</if>
+		<if test="common.score == 2">
+			and score in (4,5)
+		</if>
+		<if test="common.score == 3">
+			and score = 3
+		</if>
+		<if test="common.score == 4">
+			and score in (1,2)
+		</if>
+		ORDER BY c.create_time DESC, r.create_time ASC
+	</select>
+
+
+	<!-- 商家回复-->
+	<insert id="insertReply">
+		INSERT INTO reply VALUES(NULL, #{commentId}, #{context}, NOW(), #{isUser})
+	</insert>
+
+
+
+</mapper>

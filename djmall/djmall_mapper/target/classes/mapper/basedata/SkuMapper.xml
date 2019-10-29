@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!-- 
+	namespace:用于隔离SQL全局唯一（采用接口和XML开发时为接口的全路径）
+ -->
+<mapper namespace="com.dj.mall.mapper.basedata.sku.SkuMapper">
+	
+	 
+		<!-- 提取公共部分  sql 代码块 -->
+		<!-- <sql id="UserColumn">
+		  id, user_name, password, user_type, manager_id
+		</sql>-->
+	<!--
+			sql语句的*  提取公共部分
+	    	 用<include refid="UserColumn"/> 代替
+	 -->
+	<!--findProductAttrToAttrValueAll  属性  属性值 展示 -->
+	<select id="findProductAttrToAttrValueAll"  resultType="com.dj.mall.domain.basedata.sku.entiy.ProductAttr" >
+			SELECT
+				pa.id,
+				pa.attr_name,
+			 GROUP_CONCAT(pv.attr_value) AS attrValueShow
+			FROM
+				djmall_product_attr pa
+			LEFT JOIN djmall_product_attr_value pv ON pa.id = pv.attr_id
+			GROUP BY pa.attr_name
+			ORDER BY pa.id DESC
+	</select>
+
+	<!--findProductAttrToUniq  添加去重-->
+	<select id="findProductAttrToUniq" resultType="com.dj.mall.domain.basedata.sku.entiy.ProductAttr">
+			SELECT id, attr_name FROM djmall_product_attr where attr_name = #{attrName}
+	</select>
+	<!-- 添加属性名-->
+	<insert id="insertProductAttr">
+		INSERT INTO djmall_product_attr (attr_name) VALUES (#{attrName})
+	</insert>
+
+	<!--findProductAttrValueByAttrId 根据属性名id查询属性值  -->
+	<select id="findProductAttrValueByAttrId" resultType="com.dj.mall.domain.basedata.sku.entiy.ProductAttrValue">
+		SELECT * from djmall_product_attr_value where attr_id = #{attrId}
+	</select>
+
+	<!--findProductAttrValueByAttrIdAndAttrName   添加属性值去重-->
+	<select id="findProductAttrValueByAttrIdAndAttrName" resultType="com.dj.mall.domain.basedata.sku.entiy.ProductAttrValue">
+		SELECT id, attr_id, attr_value FROM djmall_product_attr_value where attr_id = #{attrId} and attr_value = #{attrValue}
+	</select>
+
+	<!--添加属性值-->
+	<insert id="insertProductAttrValue">
+		INSERT into djmall_product_attr_value (attr_id, attr_value) VALUES (#{attrId}, #{attrValue})
+	</insert>
+
+	<!--deleteProductAttrValueById 移除属性值 -->
+	<delete id="deleteProductAttrValueById">
+		DELETE FROM djmall_product_attr_value WHERE id =#{id}
+	</delete>
+
+
+
+
+
+
+
+
+
+
+
+
+	<!--insertProductSkuGmByDictionary
+		添加商品类型  级联字典商品类型
+	-->
+	<insert id="insertProductSkuGmByDictionary">
+		INSERT INTO djmall_product_sku_gm (product_type) VALUES (#{productType})
+	</insert>
+
+
+	<!--findProductSkuGmAll  SKU展示列表-->
+
+	<select id="findProductSkuGmAll" resultType="com.dj.mall.domain.basedata.sku.vo.ProductSkuGmVo">
+		SELECT
+			sku.id,
+			sku.product_type,
+			dic.dictionary_name AS attrShow,
+		GROUP_CONCAT(attr.attr_name) AS codeShow
+
+		FROM
+			djmall_product_sku_gm sku
+		LEFT JOIN djmall_product_attr attr ON sku.attr_id = attr.id
+		LEFT JOIN dictionary dic ON  sku.product_type = dic.code
+		GROUP BY sku.product_type
+
+	</select>
+
+
+	<!--findProductAttrToRelation 关联表 -->
+
+	<select id="findProductAttrToRelation" resultType="com.dj.mall.domain.basedata.sku.entiy.ProductAttr">
+		SELECT
+				pa.id,
+				pa.attr_name,
+				sku.product_type,
+			 GROUP_CONCAT(pv.attr_value) AS attrValueShow
+			FROM
+				djmall_product_attr pa
+			LEFT JOIN djmall_product_attr_value pv ON pa.id = pv.attr_id
+			LEFT JOIN djmall_product_sku_gm sku ON sku.attr_id = pa.id
+			where product_type = #{productType}
+			GROUP BY pa.attr_name
+			ORDER BY pa.id DESC
+	</select>
+
+
+	<select id="findProductAttrToRelationAll" resultType="com.dj.mall.domain.basedata.sku.entiy.ProductAttr">
+			SELECT
+				pa.id,
+				pa.attr_name,
+				sku.product_type,
+			 GROUP_CONCAT(pv.attr_value) AS attrValueShow
+			FROM
+				djmall_product_attr pa
+			LEFT JOIN djmall_product_attr_value pv ON pa.id = pv.attr_id
+			LEFT JOIN djmall_product_sku_gm sku ON sku.attr_id = pa.id
+			GROUP BY pa.attr_name
+			ORDER BY pa.id DESC
+	</select>
+
+
+
+
+	<!--getProAttrValue  拼接属性值-->
+
+	<select id="getProAttrValue" resultType="com.dj.mall.domain.basedata.sku.entiy.ProductAttrValue">
+			SELECT
+				attr_id,
+				GROUP_CONCAT(attr_value) AS atVaShow
+			FROM
+				djmall_product_attr_value
+			where attr_id = #{id}
+
+	</select>
+
+
+
+
+
+
+	
+</mapper>

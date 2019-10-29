@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CompilerConfiguration">
+    <annotationProcessing>
+      <profile name="Maven default annotation processors profile" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <module name="djmall_admin" />
+        <module name="djmall_basedata_api" />
+        <module name="djmall_basedata_provider" />
+        <module name="djmall_cmpt_api" />
+        <module name="djmall_cmpt_provider" />
+        <module name="djmall_common" />
+        <module name="djmall_config" />
+        <module name="djmall_domain" />
+        <module name="djmall_mapper" />
+        <module name="djmall_order_api" />
+        <module name="djmall_order_provider" />
+        <module name="djmall_platform" />
+        <module name="djmall_product_api" />
+        <module name="djmall_product_provider" />
+        <module name="djmall_task_provider" />
+        <module name="djmall_user_api" />
+        <module name="djmall_user_provider" />
+      </profile>
+    </annotationProcessing>
+  </component>
+</project>
