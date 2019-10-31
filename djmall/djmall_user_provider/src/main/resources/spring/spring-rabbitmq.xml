@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:rabbit="http://www.springframework.org/schema/rabbit"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+	http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
+        http://www.springframework.org/schema/context 
+        http://www.springframework.org/schema/context/spring-context-4.0.xsd
+        http://www.springframework.org/schema/rabbit http://www.springframework.org/schema/rabbit/spring-rabbit-1.7.xsd">
+    <!-- 自动扫包，完成Bean的创建和自动依赖注入 -->
+    <context:component-scan base-package="com.dj.mall"/>
+
+    <!-- 加入Properties文件读取 -->
+    <context:property-placeholder location="classpath:props/*.properties"/>
+
+    <!-- rabbit连接工厂 -->
+    <rabbit:connection-factory id="rabbitConnectionFactory" host="${rabbitmq.host}" port="${rabbitmq.port}"
+                               username="${rabbitmq.username}" password="${rabbitmq.password}"
+                               virtual-host="${rabbitmq.virtualhost}"/>
+
+    <!-- 将连接信息注册到RabbitMQ中-->
+    <rabbit:admin connection-factory="rabbitConnectionFactory"/>
+
+    <!-- 定义队列
+        name：队列key
+        durable:是否持久化 true/false
+        auto-delete:是否自动删除 true/false
+        exclusive:是否私有化队列
+     -->
+    <rabbit:queue name="sendEmail" durable="true" auto-delete="false" exclusive="false"/>
+
+    <!-- 消费监听容器 -->
+    <rabbit:listener-container connection-factory="rabbitConnectionFactory" acknowledge="auto" concurrency="8">
+        <!-- 消费监听
+            queue:监听队列
+        -->
+        <rabbit:listener ref="rabbitMqImpl" queue-names="sendEmail" method="onMessage"/>
+        <!--<rabbit:listener ref="consumer1" queue-names="seckill-product1" method="onMessage"/>-->
+    </rabbit:listener-container>
+
+    <!-- amqp工具类 -->
+    <rabbit:template id="rabbitTemplate" connection-factory="rabbitConnectionFactory"/>
+<!--死信机制-->
+    <!--<rabbit:queue name="q.with.dlx">-->
+        <!--<rabbit:queue-arguments>-->
+            <!--<entry key="x-dead-letter-exchange" value="dlx"/>-->
+            <!--<entry key="x-message-ttl" value="10000" value-type="java.lang.Long"/>-->
+        <!--</rabbit:queue-arguments>-->
+    <!--</rabbit:queue>-->
+
+    <!--<rabbit:queue name="dlq"/>-->
+
+    <!--<rabbit:direct-exchange name="dlx">-->
+        <!--<rabbit:bindings>-->
+            <!--<rabbit:binding key="q.with.dlx" queue="dlq"/>-->
+        <!--</rabbit:bindings>-->
+    <!--</rabbit:direct-exchange>-->
+</beans>
