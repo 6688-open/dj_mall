@@ -19,7 +19,7 @@
         <dubbo.version>2.6.2</dubbo.version>
         <zookeeper.version>3.4.13</zookeeper.version>
         <zkclient.version>0.1</zkclient.version>
-        <jackson.version>2.9.1</jackson.version>
+        <jackson.version>2.11.1</jackson.version>
         <fastjson.version>1.2.39</fastjson.version>
         <log4j2.version>2.11.1</log4j2.version>
         <mybatis-plus.version>3.0.7.1</mybatis-plus.version>
